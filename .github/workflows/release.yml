@@ -399,6 +399,8 @@ jobs:
           path: .
           format: cyclonedx-json
           output-file: dist/open-codesign-${{ github.event_name == 'push' && github.ref_name || inputs.tag }}-sbom.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
 
       - name: Generate SHA256SUMS.txt
         working-directory: dist
