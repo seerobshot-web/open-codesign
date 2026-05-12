@@ -721,8 +721,31 @@ jobs:
             Write-Output "::notice::OpenCoworkAI.OpenCoDesign is not in microsoft/winget-pkgs yet; skipping automated winget update until the initial manifest is accepted."
           }
 
-      - name: Check winget fork
+      - name: Derive winget version
         if: steps.guard.outputs.skip == 'false' && steps.winget-package.outputs.exists == 'true'
+        id: winget-version
+        shell: bash
+        run: |
+          release_ref="${{ github.event_name == 'push' && github.ref_name || inputs.tag }}"
+          version="${release_ref#v}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Check existing winget version
+        if: steps.guard.outputs.skip == 'false' && steps.winget-package.outputs.exists == 'true'
+        id: winget-existing-version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_PAT }}
+        run: |
+          if gh api "repos/microsoft/winget-pkgs/contents/manifests/o/OpenCoworkAI/OpenCoDesign/${{ steps.winget-version.outputs.version }}" >/dev/null 2>&1; then
+            echo "submit=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::OpenCoworkAI.OpenCoDesign ${{ steps.winget-version.outputs.version }} already exists in microsoft/winget-pkgs. Same-version repacks need a manual manifest update PR, so automated winget submission is skipped."
+          else
+            echo "submit=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check winget fork
+        if: steps.guard.outputs.skip == 'false' && steps.winget-package.outputs.exists == 'true' && steps.winget-existing-version.outputs.submit == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.WINGET_PAT }}
@@ -731,7 +754,7 @@ jobs:
           gh api repos/OpenCoworkAI/winget-pkgs/contents/manifests/o/OpenCoworkAI/OpenCoDesign >/dev/null
 
       - name: Check winget token upstream access
-        if: steps.guard.outputs.skip == 'false' && steps.winget-package.outputs.exists == 'true'
+        if: steps.guard.outputs.skip == 'false' && steps.winget-package.outputs.exists == 'true' && steps.winget-existing-version.outputs.submit == 'true'
         id: winget-token
         shell: bash
         env:
@@ -747,7 +770,7 @@ jobs:
           echo "::warning::WINGET_PAT cannot query microsoft/winget-pkgs through GraphQL. Komac requires a classic GitHub PAT with public_repo scope that can read microsoft/winget-pkgs and push to OpenCoworkAI/winget-pkgs. Skipping winget submission so the release is not marked failed."
 
       - name: Release winget package
-        if: steps.guard.outputs.skip == 'false' && steps.winget-package.outputs.exists == 'true' && steps.winget-token.outputs.submit == 'true'
+        if: steps.guard.outputs.skip == 'false' && steps.winget-package.outputs.exists == 'true' && steps.winget-existing-version.outputs.submit == 'true' && steps.winget-token.outputs.submit == 'true'
         uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
         with:
           identifier: OpenCoworkAI.OpenCoDesign
