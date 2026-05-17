@@ -37,6 +37,15 @@ async function main() {
   const payload = loadEventPayload();
   const issueNumber = String(payload.issue.number);
   const repo = payload.repository.full_name;
+  const eventName = process.env.GITHUB_EVENT_NAME || 'unknown';
+  const currentComment = payload.comment
+    ? {
+        id: payload.comment.id,
+        author: payload.comment.user?.login || null,
+        createdAt: payload.comment.created_at,
+        body: payload.comment.body || '',
+      }
+    : null;
 
   const prompt = readTextFileIfExists('.github/prompts/issue-auto-response.md');
   if (!prompt) {
@@ -58,11 +67,16 @@ async function main() {
     ['CLAUDE.md', 'AGENTS.md', 'README.md', 'package.json', 'pnpm-lock.yaml'],
     7000,
   );
-  const searchSnippets = searchRepoSnippets(`${issue.title}\n${issue.body || ''}`, 50);
+  const searchInput = [issue.title, issue.body || '', currentComment?.body || ''].join('\n');
+  const searchSnippets = searchRepoSnippets(searchInput, 50);
 
   const userPrompt = [
     `Repo: ${repo}`,
     `Issue number: ${issueNumber}`,
+    `GitHub event: ${eventName}`,
+    currentComment
+      ? `Current human follow-up comment:\n${JSON.stringify(currentComment, null, 2)}`
+      : 'Current human follow-up comment: none; this is an initial issue response.',
     '',
     'Issue metadata:',
     JSON.stringify(issue, null, 2),
