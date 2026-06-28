@@ -122,6 +122,7 @@ export const ImageGenerationProviderSchema = z.enum([
   'openai',
   'openrouter',
   CHATGPT_CODEX_PROVIDER_ID,
+  'krea',
 ]);
 export type ImageGenerationProvider = z.infer<typeof ImageGenerationProviderSchema>;
 

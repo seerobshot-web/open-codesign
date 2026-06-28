@@ -8,12 +8,14 @@ import { Label, NativeSelect, Row, SectionTitle, SegmentedControl } from './prim
 function defaultImageModelFor(provider: ImageGenerationSettingsView['provider']): string {
   if (provider === 'openrouter') return 'openai/gpt-5.4-image-2';
   if (provider === 'chatgpt-codex') return 'gpt-5.5';
+  if (provider === 'krea') return 'bfl/flux-1-dev';
   return 'gpt-image-2';
 }
 
 function defaultImageBaseUrlFor(provider: ImageGenerationSettingsView['provider']): string {
   if (provider === 'openrouter') return 'https://openrouter.ai/api/v1';
   if (provider === 'chatgpt-codex') return 'https://chatgpt.com/backend-api';
+  if (provider === 'krea') return 'https://api.krea.ai';
   return 'https://api.openai.com/v1';
 }
 
@@ -148,6 +150,7 @@ function ImageGenerationPanel() {
                 }),
               },
               { value: 'openrouter', label: 'OpenRouter' },
+              { value: 'krea', label: 'Krea AI' },
             ]}
             onChange={(value) => {
               const provider = value as ImageGenerationSettingsView['provider'];
